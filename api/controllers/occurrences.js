@@ -40,7 +40,14 @@ function occurrenceCount(req, res) {
   const query = {
     query: {
       bool: {
-        should: [isGeoreferenced]
+        should: [isGeoreferenced],
+        must: [
+          {
+            query_string: {
+              query: '*'
+            }
+          }
+        ]
       }
     }
   };
@@ -49,6 +56,36 @@ function occurrenceCount(req, res) {
 
   if (!onlyGeoreferenced) {
     query.query.bool.should.push(isNotGeoreferenced);
+  }
+
+  const group = req.swagger.params.group.value;
+  console.log("The group "+group);
+
+  if (group) {
+    query.query.bool.must[1] = {
+      bool: {
+        should: [],
+      }
+    };
+    let counter = 0;
+    if(Array.isArray(group)){
+      group.forEach((value) => {
+        query.query.bool.must[1].bool.should[counter] = {
+          term: {
+            'group': `${value.toLowerCase()}`
+          }
+        };
+        counter += 1;
+      });
+    }
+    else{
+      query.query.bool.must[1].bool.should[0] = {
+        term: {
+          'group': `${group.toLowerCase()}`
+        }
+      };
+    }
+
   }
 
   client.count({
@@ -71,6 +108,8 @@ function occurrenceCount(req, res) {
  */
 function search(req, res) {
   let countAndQueries = 1;
+  const group = req.swagger.params.group.value;
+  console.log("The group "+group);
 
   const from = ((req.swagger.params.page.value) ? req.swagger.params.page.value : 0)
     * ((req.swagger.params.size.value) ? req.swagger.params.size.value : 10);
@@ -133,6 +172,33 @@ function search(req, res) {
     });
     countAndQueries += 1;
   }
+  if (group) {
+    query.query.bool.must[1] = {
+      bool: {
+        should: [],
+      }
+    };
+    let counter = 0;
+    if (Array.isArray(group)) {
+      group.forEach((value) => {
+        query.query.bool.must[countAndQueries].bool.should[counter] = {
+          term: {
+            'group': `${value.toLowerCase()}`
+          }
+        };
+        counter += 1;
+      });
+    }
+    else {
+      query.query.bool.must[countAndQueries].bool.should[0] = {
+        term: {
+          'group': `${group.toLowerCase()}`
+        }
+      };
+    }
+    countAndQueries += 1;
+  }
+
   if (req.swagger.params.kingdomName.value) {
     query.query.bool.must[countAndQueries] = {
       bool: {
