@@ -88,6 +88,12 @@ paths:
           description: True or false if you wants only georeferenced occurrences
           required: false
           type: boolean
+        - name: group
+          in: query
+          description: The access groups to query.
+          required: false
+          type: string
+          default: guess
       responses:
         "200":
           description: Success
@@ -109,6 +115,12 @@ paths:
       # used as the method name of the controller
       operationId: search
       parameters:
+        - name: group
+          in: query
+          description: The access groups to query.
+          required: false
+          type: string
+          default: guess
         - name: q
           in: query
           description: Simple search parameter. The value for this parameter can be a simple word or a phrase. See http://lucene.apache.org/core/6_1_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html#package_description
