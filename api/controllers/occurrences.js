@@ -13,7 +13,6 @@ const client = new elasticsearch.Client({
 
 /*
   Returns count of occurrences according to query parameters
-
   Param 1: isGeoreferenced (boolean), if true returns the count of georeferenced occurrences
  */
 function occurrenceCount(req, res) {
@@ -59,7 +58,6 @@ function occurrenceCount(req, res) {
   }
 
   const group = req.swagger.params.group.value;
-  console.log("The group "+group);
 
   if (group) {
     query.query.bool.must[1] = {
@@ -72,7 +70,7 @@ function occurrenceCount(req, res) {
       group.forEach((value) => {
         query.query.bool.must[1].bool.should[counter] = {
           term: {
-            'group': `${value.toLowerCase()}`
+            'resource.group': `${value.toLowerCase()}`
           }
         };
         counter += 1;
@@ -81,7 +79,7 @@ function occurrenceCount(req, res) {
     else{
       query.query.bool.must[1].bool.should[0] = {
         term: {
-          'group': `${group.toLowerCase()}`
+          'resource.group': `${group.toLowerCase()}`
         }
       };
     }
@@ -109,7 +107,6 @@ function occurrenceCount(req, res) {
 function search(req, res) {
   let countAndQueries = 1;
   const group = req.swagger.params.group.value;
-  console.log("The group "+group);
 
   const from = ((req.swagger.params.page.value) ? req.swagger.params.page.value : 0)
     * ((req.swagger.params.size.value) ? req.swagger.params.size.value : 10);
@@ -183,7 +180,7 @@ function search(req, res) {
       group.forEach((value) => {
         query.query.bool.must[countAndQueries].bool.should[counter] = {
           term: {
-            'group': `${value.toLowerCase()}`
+            'resource.group': `${value.toLowerCase()}`
           }
         };
         counter += 1;
@@ -192,7 +189,7 @@ function search(req, res) {
     else {
       query.query.bool.must[countAndQueries].bool.should[0] = {
         term: {
-          'group': `${group.toLowerCase()}`
+          'resource.group': `${group.toLowerCase()}`
         }
       };
     }
