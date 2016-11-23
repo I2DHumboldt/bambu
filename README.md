@@ -32,8 +32,7 @@ npm install
 ## Configuración
 
 La configuración de la aplicación se hace en el archivo de configuración `config/application-config.js` que usa el manejador
-de configuraciones [convit](https://www.npmjs.com/package/convict). Los parámetros de configuración son los siguientes se 
-listan en el siguiente JSON.
+de configuraciones [convit](https://www.npmjs.com/package/convict). Los parámetros de configuración se listan en el siguiente JSON.
 
 ``` js
 convict({
@@ -86,8 +85,7 @@ convict({
 
 Los valores de los parámetros se leen desde las varibales de entorno del sistema que estén
 definidas. Por ejemplo, si se quiere modificar el parámetro del nombre del servicio (*service*), se debe exportar una variable
-de entorno en la consola del sistema: `export SERVICE_NAME='Nuevo nombre'`. De lo contrario la variable tendrá el valor por
-defecto (default): `'Dataportal API Services'.
+de entorno del sistema: `export SERVICE_NAME='Nuevo nombre'`. De lo contrario la variable tendrá el valor por defecto (default): `'Dataportal API Services'.
 
 **Nota**: _Es importante que los parámetros de elasticSearch estén apuntando a la base de datos sobre la cual se realizó la importación
 de los datos a travez del api-data-importer. Las variables de entorno que se deben definir en este caso son ESDBHOST y ESINDEX. 
