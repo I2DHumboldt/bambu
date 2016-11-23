@@ -83,7 +83,7 @@ convict({
 })
 ```
 
-Los valores de los parámetros se leen desde las varibales de entorno del sistema que estén
+Los valores de los parámetros se leen desde las variables de entorno del sistema que estén
 definidas. Por ejemplo, si se quiere modificar el parámetro del nombre del servicio (*service*), se debe exportar una variable
 de entorno del sistema: `export SERVICE_NAME='Nuevo nombre'`. De lo contrario la variable tendrá el valor por defecto (default): `'Dataportal API Services'.
 
