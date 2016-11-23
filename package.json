@@ -4,6 +4,7 @@
   "description": "Starter project for an ES6 RESTful Express API",
   "main": "index.js",
   "scripts": {
+    "prepare": "node config/application-config.js",
     "start": "./node_modules/.bin/nodemon -e js index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

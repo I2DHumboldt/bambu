@@ -1,7 +1,8 @@
 {
   database: {
     elasticSearch: {
-      url: ['localhost:9200']
+      url: ['localhost:9200'],
+      index: 'sibdataportal'
     }
   }
 }

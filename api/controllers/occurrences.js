@@ -87,7 +87,7 @@ function occurrenceCount(req, res) {
   }
 
   client.count({
-    index: 'sibdataportal',
+    index: config.get('database.elasticSearch.index'),
     type: 'occurrence',
     body: query
   }, (err, response) => {
@@ -803,7 +803,7 @@ function search(req, res) {
   }
 
   client.search({
-    index: 'sibdataportal',
+    index: config.get('database.elasticSearch.index'),
     type: 'occurrence',
     body: query
   }, (err, response) => {
@@ -1321,7 +1321,7 @@ function gridSearch(req, res) {
   }
 
   client.search({
-    index: 'sibdataportal',
+    index: config.get('database.elasticSearch.index'),
     type: 'occurrence',
     body: query
   }, (err, response) => {
@@ -1943,7 +1943,7 @@ function gridSearchPbf(req, res) {
   }
 
   client.search({
-    index: 'sibdataportal',
+    index: config.get('database.elasticSearch.index'),
     type: 'occurrence',
     body: query
   }, (err, response) => {
