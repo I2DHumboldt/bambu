@@ -70,7 +70,7 @@ convict({
     elasticSearch: {
       url: {
         doc: 'ElasticSearch url to connect to (without including db reference)',
-        default: ['localhost:9200'],
+        default: 'localhost:9200',
         env: 'ESDBHOST'
       },
       index: {
@@ -89,9 +89,9 @@ de entorno del sistema: `export SERVICE_NAME='Nuevo nombre'`. De lo contrario la
 
 **Nota**: _Es importante que los parámetros de elasticSearch estén apuntando a la base de datos sobre la cual se realizó la importación
 de los datos a travez del api-data-importer. Las variables de entorno que se deben definir en este caso son ESDBHOST y ESINDEX. 
-Si esta aplicación está corriendo en el mismo servidor en que se realizó la importación, las variables de entorno ya fueron
-exportadas por el [script de preparación del api-data-importer] (https://github.com/I2DHumboldt/api-data-importer/tree/master/dbscripts) 
-cuando se ejecutó el comando npm run prepare`_
+Si esta aplicación está corriendo en el mismo servidor en que se realizó la importación, las variables deben ser las mismas que las usadas
+por el [script de preparación del api-data-importer] (https://github.com/I2DHumboldt/api-data-importer/tree/master/dbscripts) 
+que se ejecuta con **npm run prepare**`_
 
 
 ## Puesta en marcha

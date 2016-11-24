@@ -40,7 +40,7 @@ export const config = convict({
     elasticSearch: {
       url: {
         doc: 'ElasticSearch url to connect to (without including db reference)',
-        default: ['localhost:9200'],
+        default: 'localhost:9200',
         env: 'ESDBHOST'
       },
       index: {
