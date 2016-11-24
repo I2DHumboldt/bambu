@@ -85,14 +85,14 @@ convict({
 
 Los valores de los parámetros se leen desde las variables de entorno del sistema que estén
 definidas. Por ejemplo, si se quiere modificar el parámetro del nombre del servicio (*service*), se debe exportar una variable
-de entorno del sistema: `export SERVICE_NAME='Nuevo nombre'`. De lo contrario la variable tendrá el valor por defecto (default): `'Dataportal API Services'.
+de entorno del sistema: `export SERVICE_NAME='Nuevo nombre'`. De lo contrario la variable tendrá el valor por defecto (default): `'Dataportal API Services'`.
 
 **Nota**: _Es importante que los parámetros de elasticSearch estén apuntando a la base de datos sobre la cual se realizó la importación
 de los datos a travez del api-data-importer. 
 Las variables de entorno que se deben definir en este caso son ESDBHOST y ESINDEX. 
 Si esta aplicación está corriendo en el mismo servidor en que se realizó la importación, las variables deben ser las mismas que las usadas
 por el [script de preparación del api-data-importer] (https://github.com/I2DHumboldt/api-data-importer/tree/master/dbscripts) 
-que se ejecuta con **npm run prepare**`_
+que se ejecuta con **npm run prepare**_
 
 
 ## Puesta en marcha
@@ -107,8 +107,8 @@ npm start
 curl -X GET --header 'Accept: application/json' 'http://localhost:5000/api/v1.5/occurrence/count?isGeoreferenced=true'
 ```
 
-Si hay datos en la base de datos de ElasticSearch existe se debe ver un mensaje como este:`
-`
+Si hay datos en la base de datos de ElasticSearch se debe ver un mensaje como este:
+
 ``` bash
 {count: 341}
 ```
