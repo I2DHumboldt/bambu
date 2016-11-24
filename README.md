@@ -32,7 +32,7 @@ npm install
 ## Configuración
 
 La configuración de la aplicación se hace en el archivo de configuración `config/application-config.js` que usa el manejador
-de configuraciones [convit](https://www.npmjs.com/package/convict). Los parámetros de configuración se listan en el siguiente JSON.
+de configuraciones [convict](https://www.npmjs.com/package/convict). Los parámetros de configuración se listan en el siguiente JSON.
 
 ``` js
 convict({
