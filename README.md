@@ -95,7 +95,21 @@ por el [script de preparación del api-data-importer] (https://github.com/I2DHum
 que se ejecuta con **npm run prepare**_
 
 
-## Puesta en marcha
+## Puesta en marcha 
+### Correr con PM2
+Instale pm2
+
+``` bash 
+npm install pm2 -g
+```
+
+Ejecute el proceso
+
+```
+  pm2 run proxy-api-ceiba.json
+ ```
+
+### Con nodeamon
 
 ``` bash
 npm start
