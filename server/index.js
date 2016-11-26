@@ -11,6 +11,9 @@ import { logger } from './log';
 import SwaggerExpress from 'swagger-express-mw';
 import swaggerUiMiddleware from 'swagger-ui-middleware';
 
+console.log(config.get('env'));
+console.log(config.get('logs'));
+
 const app = express();
 app.use(compression());
 const swaggerConfig = {
@@ -48,7 +51,7 @@ db(λ => {
 
     app.server.listen(config.get('server.port') || 5000);
 
-    logger.info(`Started on port ${app.server.address().port}`);
+    //logger.info(`Started on port ${app.server.address().port}`);
   });
 });
 
