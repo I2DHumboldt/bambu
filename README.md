@@ -106,8 +106,8 @@ npm install pm2 -g
 Ejecute el proceso
 
 ```
-  pm2 run proxy-api-ceiba.json
- ```
+pm2 run proxy-api-ceiba.json
+```
 
 ### Con nodeamon
 
