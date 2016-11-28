@@ -11,6 +11,229 @@ const client = new elasticsearch.Client({
   log: 'trace'
 });
 
+const queryMap = {
+  exactQuery:{group:'resource.group'},
+  wildcardQuery:{
+    scientificName: 'canonical',
+    kingdomName: 'taxonomy.kingdom_name',
+    phylumName: 'taxonomy.phylum_name',
+    className: 'taxonomy.class_name',
+    orderName: 'taxonomy.order_name',
+    familyName: 'taxonomy.family_name',
+    genusName: 'taxonomy.genus_name',
+    speciesName: 'taxonomy.species_name',
+    specificEpithetName: 'taxonomy.specific_epithet',
+    infraspecificEpithetName: 'taxonomy.infraspecific_epithet',
+    providerName: 'provider.name',
+    resourceName: 'resource.name',
+    collectionName: 'collection.name',
+    institutionCode: 'institution.code',
+    countryName: 'country_name',
+    departmentName: 'department_name',
+    countyName: 'county_name',
+    habitat: 'habitat',
+    basisOfRecord: 'basis_of_record.name'
+  }
+};
+
+function addQueriesFromMap(params, query, queryMap){
+  for(let key in queryMap.exactQuery) {
+    addExactQuery(params[key].value, queryMap.exactQuery[key], query);
+  }
+  for(let key in queryMap.wildcardQuery) {
+    addWildcardQuery(params[key].value, queryMap.wildcardQuery[key]+".exactWords", query);
+  }
+}
+
+function addWildcardQuery(paramValue, field, query) {
+  if (paramValue) {
+    let anotherMust = {
+      bool: {
+        should: []
+      }
+    };
+    if(Array.isArray(group)){
+      paramValue.forEach((value) => {
+        let wildcardQuery = {};
+        wildcardQuery[field] = `*${value.toLowerCase()}*`;
+        anotherMust.bool.should.push({
+          wildcard: wildcardQuery
+        });
+      });
+    }
+    else {
+      let wildcardQuery = {};
+      wildcardQuery[field] = `${paramValue.toLowerCase()}`;
+      anotherMust.bool.should.push({
+        wildcard: wildcardQuery
+      });
+    }
+    query.query.bool.must.push(anotherMust);
+  }
+}
+
+function addExactQuery(paramValue, field, query) {
+  if (paramValue) {
+    let anotherMust = {
+      bool: {
+        should: [],
+      }
+    };
+
+    if(Array.isArray(paramValue)){
+      paramValue.forEach((value) => {
+        let tempQuery = {};
+        tempQuery[field] = `${value.toLowerCase()}`;
+        anotherMust.bool.should.push({
+          term: tempQuery
+        });
+      });
+    }
+    else {
+      let tempQuery = {};
+      tempQuery[field] = `${paramValue.toLowerCase()}`;
+      anotherMust.bool.should.push({
+        term: tempQuery
+      });
+    }
+    query.query.bool.must.push(anotherMust);
+  }
+}
+
+function addGeoQuery(params, query) {
+  if (params.latitudeTopLeft.value && params.longitudeTopLeft.value && params.latitudeBottomRight.value && params.longitudeBottomRight.value) {
+    query.query.bool.filter = {
+      geo_bounding_box: {
+        location: {
+          top_left: {
+            lat: params.latitudeTopLeft.value,
+            lon: params.longitudeTopLeft.value
+          },
+          bottom_right: {
+            lat: params.latitudeBottomRight.value,
+            lon: params.longitudeBottomRight.value
+          }
+        }
+      }
+    };
+  }
+}
+
+function addElevationQuery(params, query) {
+  // Query related with elevation
+  if (params.elevationEqual.value || params.elevationGreaterOrEqualTo.value || params.elevationLessOrEqualTo.value) {
+    let anotherMust = {
+      bool: {
+        should: [],
+      }
+    };
+
+    if (params.elevationEqual.value) {
+      params.elevationEqual.value.forEach((value) => {
+        anotherMust.bool.should.push({
+          constant_score: {
+            filter: {
+              term: {
+                minimum_elevation: parseFloat(value)
+              }
+            }
+          }
+        });
+      });
+    }
+    if (params.elevationGreaterOrEqualTo.value) {
+      params.elevationGreaterOrEqualTo.value.forEach((value) => {
+        anotherMust.bool.should.push({
+          constant_score: {
+            filter: {
+              range: {
+                minimum_elevation: {
+                  gte: parseFloat(value)
+                }
+              }
+            }
+          }
+        });
+      });
+    }
+    if (params.elevationLessOrEqualTo.value) {
+      params.elevationLessOrEqualTo.value.forEach((value) => {
+        anotherMust.bool.should.push({
+          constant_score: {
+            filter: {
+              range: {
+                minimum_elevation: {
+                  lte: parseFloat(value)
+                }
+              }
+            }
+          }
+        });
+      });
+    }
+    query.query.bool.must.push(anotherMust);
+  }
+}
+
+function addDepthQuery(params, query) {
+  if (params.depthEqual.value || params.depthGreaterOrEqualTo.value || params.depthLessOrEqualTo.value) {
+
+    let anotherMust = {
+      bool: {
+        should: [],
+      }
+    };
+
+    if (params.depthEqual.value) {
+      params.depthEqual.value.forEach((value) => {
+        anotherMust.bool.should.push({
+          constant_score: {
+            filter: {
+              term: {
+                minimum_elevation: -parseFloat(value)
+              }
+            }
+          }
+        });
+      });
+    }
+    if (params.depthGreaterOrEqualTo.value) {
+      params.depthGreaterOrEqualTo.value.forEach((value) => {
+        anotherMust.bool.should.push({
+          constant_score: {
+            filter: {
+              range: {
+                minimum_elevation: {
+                  lte: -parseFloat(value)
+                }
+              }
+            }
+          }
+        });
+      });
+    }
+    if (params.depthLessOrEqualTo.value) {
+      params.depthLessOrEqualTo.value.forEach((value) => {
+        anotherMust.bool.should.push({
+          constant_score: {
+            filter: {
+              range: {
+                minimum_elevation: {
+                  gte: -parseFloat(value)
+                }
+              }
+            }
+          }
+        });
+      });
+    }
+    query.query.bool.must.push(anotherMust);
+  }
+}
+
+const colorPalette = ['#FFFFFF', '#FFE8A5', '#FDDC9E', '#FBD198', '#F9C592', '#F7BA8B', '#F5AF85', '#F3A37F', '#F19879',
+  '#EF8D72', '#ED816C', '#EB7666', '#EA6B60', "#000000"];
+
 /*
   Returns count of occurrences according to query parameters
   Param 1: isGeoreferenced (boolean), if true returns the count of georeferenced occurrences
@@ -57,33 +280,10 @@ function occurrenceCount(req, res) {
     query.query.bool.should.push(isNotGeoreferenced);
   }
 
-  const group = req.swagger.params.group.value;
-
-  if (group) {
-    query.query.bool.must[1] = {
-      bool: {
-        should: [],
-      }
-    };
-    let counter = 0;
-    if(Array.isArray(group)){
-      group.forEach((value) => {
-        query.query.bool.must[1].bool.should[counter] = {
-          term: {
-            'resource.group': `${value.toLowerCase()}`
-          }
-        };
-        counter += 1;
-      });
-    }
-    else{
-      query.query.bool.must[1].bool.should[0] = {
-        term: {
-          'resource.group': `${group.toLowerCase()}`
-        }
-      };
-    }
-
+  //Add group query part
+  //addExactQuery(req.swagger.params.group.value, 'resource.group', query);
+  for(let key in queryMap.exactQuery) {
+    addExactQuery(req.swagger.params[key].value, queryMap.exactQuery[key], query);
   }
 
   client.count({
@@ -105,9 +305,6 @@ function occurrenceCount(req, res) {
   Param facet: type string, name of element used for aggregation
  */
 function search(req, res) {
-  let countAndQueries = 1;
-  const group = req.swagger.params.group.value;
-
   const from = ((req.swagger.params.page.value) ? req.swagger.params.page.value : 0)
     * ((req.swagger.params.size.value) ? req.swagger.params.size.value : 10);
   // Root query for ES
@@ -129,674 +326,42 @@ function search(req, res) {
   };
 
   // Check parameters for bounding box query
-  if (req.swagger.params.latitudeTopLeft.value && req.swagger.params.longitudeTopLeft.value && req.swagger.params.latitudeBottomRight.value && req.swagger.params.longitudeBottomRight.value) {
-    query.query.bool.filter = {
-      geo_bounding_box: {
-        location: {
-          top_left: {
-            lat: req.swagger.params.latitudeTopLeft.value,
-            lon: req.swagger.params.longitudeTopLeft.value
-          },
-          bottom_right: {
-            lat: req.swagger.params.latitudeBottomRight.value,
-            lon: req.swagger.params.longitudeBottomRight.value
-          }
-        }
-      }
-    };
-  }
+  addGeoQuery(req.swagger.params, query);
 
   // If query general condition
   if (req.swagger.params.q.value) {
     query.query.bool.must[0].query_string.query = req.swagger.params.q.value;
   }
-
-  // If wildcard queries
-  if (req.swagger.params.scientificName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.scientificName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'canonical.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (group) {
-    query.query.bool.must[1] = {
-      bool: {
-        should: [],
-      }
-    };
-    let counter = 0;
-    if (Array.isArray(group)) {
-      group.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          term: {
-            'resource.group': `${value.toLowerCase()}`
-          }
-        };
-        counter += 1;
-      });
-    }
-    else {
-      query.query.bool.must[countAndQueries].bool.should[0] = {
-        term: {
-          'resource.group': `${group.toLowerCase()}`
-        }
-      };
-    }
-    countAndQueries += 1;
-  }
-
-  if (req.swagger.params.kingdomName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.kingdomName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.kingdom_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.phylumName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.phylumName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.phylum_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.className.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.className.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.class_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.orderName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.orderName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.order_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.familyName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.familyName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.family_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.genusName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.genusName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.genus_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.speciesName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.speciesName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.species_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.specificEpithetName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.specificEpithetName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.specific_epithet.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.infraspecificEpithetName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.infraspecificEpithetName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.infraspecific_epithet.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.providerName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.providerName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'provider.name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.resourceName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.resourceName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'resource.name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.collectionName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.collectionName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'collection.name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.institutionCode.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.institutionCode.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'institution.code.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.countryName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.countryName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'country_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.departmentName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.departmentName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'department_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.countyName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.countyName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'county_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.habitat.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.habitat.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'habitat.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.basisOfRecord.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.basisOfRecord.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'basis_of_record.name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
+  // If wildcard queries and exact queries
+  addQueriesFromMap(req.swagger.params, query, queryMap);
   // Query related with elevation
-  if (req.swagger.params.elevationEqual.value || req.swagger.params.elevationGreaterOrEqualTo.value || req.swagger.params.elevationLessOrEqualTo.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    if (req.swagger.params.elevationEqual.value) {
-      req.swagger.params.elevationEqual.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              term: {
-                minimum_elevation: parseFloat(value)
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    if (req.swagger.params.elevationGreaterOrEqualTo.value) {
-      req.swagger.params.elevationGreaterOrEqualTo.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              range: {
-                minimum_elevation: {
-                  gte: parseFloat(value)
-                }
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    if (req.swagger.params.elevationLessOrEqualTo.value) {
-      req.swagger.params.elevationLessOrEqualTo.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              range: {
-                minimum_elevation: {
-                  lte: parseFloat(value)
-                }
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    countAndQueries += 1;
-  }
+  addElevationQuery(req.swagger.params, query);
   // Query related with depth
-  if (req.swagger.params.depthEqual.value || req.swagger.params.depthGreaterOrEqualTo.value || req.swagger.params.depthLessOrEqualTo.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    if (req.swagger.params.depthEqual.value) {
-      req.swagger.params.depthEqual.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              term: {
-                minimum_elevation: -parseFloat(value)
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    if (req.swagger.params.depthGreaterOrEqualTo.value) {
-      req.swagger.params.depthGreaterOrEqualTo.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              range: {
-                minimum_elevation: {
-                  lte: -parseFloat(value)
-                }
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    if (req.swagger.params.depthLessOrEqualTo.value) {
-      req.swagger.params.depthLessOrEqualTo.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              range: {
-                minimum_elevation: {
-                  gte: -parseFloat(value)
-                }
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    countAndQueries += 1;
-  }
+  addDepthQuery(req.swagger.params, query);
 
   // If facets query param construct the query for ES
   if (req.swagger.params.facet.value) {
     req.swagger.params.facet.value.forEach((value) => {
-      if (value === 'scientificName') {
-        query.aggs.scientificName = {
+
+      if(queryMap.wildcardQuery[value]) {
+        query.aggs[value] = {
           terms: {
-            field: 'canonical.untouched',
+            field: queryMap.wildcardQuery[value]+'.untouched',
             size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
             shard_size: 100000
           }
         };
-      }
-      if (value === 'kingdom') {
-        query.aggs.kingdom = {
-          terms: {
-            field: 'taxonomy.kingdom_name.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
-      }
-      if (value === 'phylum') {
-        query.aggs.phylum = {
-          terms: {
-            field: 'taxonomy.phylum_name.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
-      }
-      if (value === 'class') {
-        query.aggs.class = {
-          terms: {
-            field: 'taxonomy.class_name.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
-      }
-      if (value === 'order') {
-        query.aggs.order = {
-          terms: {
-            field: 'taxonomy.order_name.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
-      }
-      if (value === 'family') {
-        query.aggs.family = {
-          terms: {
-            field: 'taxonomy.family_name.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
-      }
-      if (value === 'genus') {
-        query.aggs.genus = {
-          terms: {
-            field: 'taxonomy.genus_name.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
-      }
-      if (value === 'specie') {
-        query.aggs.specie = {
-          terms: {
-            field: 'taxonomy.species_name.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
-      }
-      if (value === 'specific_epithet') {
-        query.aggs.specific_epithet = {
-          terms: {
-            field: 'taxonomy.specific_epithet.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
-      }
-      if (value === 'infraspecific_epithet') {
-        query.aggs.infraspecific_epithet = {
-          terms: {
-            field: 'taxonomy.infraspecific_epithet.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
-      }
-      if (value === 'country') {
-        query.aggs.country = {
-          terms: {
-            field: 'country_name.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
-      }
-      if (value === 'department') {
-        query.aggs.department = {
-          terms: {
-            field: 'department_name.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
-      }
-      if (value === 'county') {
-        query.aggs.county = {
-          terms: {
-            field: 'county_name.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          },
-          aggs: {
+        if (value === 'county') {
+          query.aggs[value].aggs = {
             department: {
               terms: {
                 field: 'department_name.untouched',
-                size: 10,
-                shard_size: 100000
+                  size: 10,
+                  shard_size: 100000
               }
             }
           }
-        };
-      }
-      if (value === 'habitat') {
-        query.aggs.habitat = {
-          terms: {
-            field: 'habitat.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
-      }
-      if (value === 'basis_of_record') {
-        query.aggs.basis_of_record = {
-          terms: {
-            field: 'basis_of_record.name.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
-      }
-      if (value === 'collection_name') {
-        query.aggs.collection_name = {
-          terms: {
-            field: 'collection.name.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
-      }
-      if (value === 'provider_name') {
-        query.aggs.provider_name = {
-          terms: {
-            field: 'provider.name.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
-      }
-      if (value === 'resource_name') {
-        query.aggs.resource_name = {
-          terms: {
-            field: 'resource.name.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
-      }
-      if (value === 'institution_code') {
-        query.aggs.institution_code = {
-          terms: {
-            field: 'institution.code.untouched',
-            size: (req.swagger.params.facetLimit.value) ? req.swagger.params.facetLimit.value : 10,
-            shard_size: 100000
-          }
-        };
+        }
       }
     });
     query.size = 0;
@@ -851,8 +416,6 @@ function search(req, res) {
   Returns a grid with occurrence densities according to params request
  */
 function gridSearch(req, res) {
-  let countAndQueries = 1;
-
   // Root query for ES
   const query = {
     size: 0,
@@ -882,443 +445,12 @@ function gridSearch(req, res) {
   if (req.swagger.params.q.value) {
     query.query.bool.must[0].query_string.query = req.swagger.params.q.value;
   }
-
-  // If wildcard queries
-  if (req.swagger.params.scientificName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.scientificName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'canonical.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.kingdomName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.kingdomName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.kingdom_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.phylumName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.phylumName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.phylum_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.className.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.className.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.class_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.orderName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.orderName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.order_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.familyName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.familyName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.family_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.genusName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.genusName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.genus_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.speciesName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.speciesName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.species_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.specificEpithetName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.specificEpithetName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.specific_epithet.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.infraspecificEpithetName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.infraspecificEpithetName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.infraspecific_epithet.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.providerName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.providerName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'provider.name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.resourceName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.resourceName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'resource.name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.collectionName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.collectionName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'collection.name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.institutionCode.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.institutionCode.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'institution.code.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.countryName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.countryName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'country_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.departmentName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.departmentName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'department_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.countyName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.countyName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'county_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.habitat.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.habitat.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'habitat.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.basisOfRecord.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.basisOfRecord.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'basis_of_record.name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
+  // If wildcard queries and exact queries
+  addQueriesFromMap(req.swagger.params, query, queryMap);
   // Query related with elevation
-  if (req.swagger.params.elevationEqual.value || req.swagger.params.elevationGreaterOrEqualTo.value || req.swagger.params.elevationLessOrEqualTo.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    if (req.swagger.params.elevationEqual.value) {
-      req.swagger.params.elevationEqual.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              term: {
-                minimum_elevation: parseFloat(value)
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    if (req.swagger.params.elevationGreaterOrEqualTo.value) {
-      req.swagger.params.elevationGreaterOrEqualTo.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              range: {
-                minimum_elevation: {
-                  gte: parseFloat(value)
-                }
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    if (req.swagger.params.elevationLessOrEqualTo.value) {
-      req.swagger.params.elevationLessOrEqualTo.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              range: {
-                minimum_elevation: {
-                  lte: parseFloat(value)
-                }
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    countAndQueries += 1;
-  }
+  addElevationQuery(req.swagger.params, query);
   // Query related with depth
-  if (req.swagger.params.depthEqual.value || req.swagger.params.depthGreaterOrEqualTo.value || req.swagger.params.depthLessOrEqualTo.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    if (req.swagger.params.depthEqual.value) {
-      req.swagger.params.depthEqual.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              term: {
-                minimum_elevation: -parseFloat(value)
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    if (req.swagger.params.depthGreaterOrEqualTo.value) {
-      req.swagger.params.depthGreaterOrEqualTo.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              range: {
-                minimum_elevation: {
-                  lte: -parseFloat(value)
-                }
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    if (req.swagger.params.depthLessOrEqualTo.value) {
-      req.swagger.params.depthLessOrEqualTo.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              range: {
-                minimum_elevation: {
-                  gte: -parseFloat(value)
-                }
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    countAndQueries += 1;
-  }
+  addDepthQuery(req.swagger.params, query);
 
   client.search({
     index: config.get('database.elasticSearch.index'),
@@ -1373,47 +505,7 @@ function gridSearch(req, res) {
             let p = occurrenceGeoHashGrid.buckets[key].doc_count;
             p = Math.max(p, 2);
             p = Math.log10(p);
-            const colorGroup = Math.ceil((p * 12) / logValueHigher);
-            switch (colorGroup) {
-              case 1:
-                fillColor = '#FFE8A5';
-                break;
-              case 2:
-                fillColor = '#FDDC9E';
-                break;
-              case 3:
-                fillColor = '#FBD198';
-                break;
-              case 4:
-                fillColor = '#F9C592';
-                break;
-              case 5:
-                fillColor = '#F7BA8B';
-                break;
-              case 6:
-                fillColor = '#F5AF85';
-                break;
-              case 7:
-                fillColor = '#F3A37F';
-                break;
-              case 8:
-                fillColor = '#F19879';
-                break;
-              case 9:
-                fillColor = '#EF8D72';
-                break;
-              case 10:
-                fillColor = '#ED816C';
-                break;
-              case 11:
-                fillColor = '#EB7666';
-                break;
-              case 12:
-                fillColor = '#EA6B60';
-                break;
-              default:
-                break;
-            }
+            fillColor = colorPalette[Math.ceil((p * 12) / logValueHigher)];
           }
 
           features.push({
@@ -1422,26 +514,11 @@ function gridSearch(req, res) {
               type: 'Polygon',
               coordinates: [
                 [
-                  [
-                    bounds.sw.lon,
-                    bounds.sw.lat
-                  ],
-                  [
-                    bounds.sw.lon,
-                    bounds.ne.lat
-                  ],
-                  [
-                    bounds.ne.lon,
-                    bounds.ne.lat
-                  ],
-                  [
-                    bounds.ne.lon,
-                    bounds.sw.lat
-                  ],
-                  [
-                    bounds.sw.lon,
-                    bounds.sw.lat
-                  ]
+                  [bounds.sw.lon, bounds.sw.lat],
+                  [bounds.sw.lon, bounds.ne.lat],
+                  [bounds.ne.lon, bounds.ne.lat],
+                  [bounds.ne.lon, bounds.sw.lat],
+                  [bounds.sw.lon, bounds.sw.lat]
                 ]
               ]
             },
@@ -1473,8 +550,6 @@ function gridSearch(req, res) {
   vector tile format using protocol buffer
  */
 function gridSearchPbf(req, res) {
-  let countAndQueries = 1;
-
   // Root query for ES
   const query = {
     size: 0,
@@ -1504,443 +579,12 @@ function gridSearchPbf(req, res) {
   if (req.swagger.params.q.value) {
     query.query.bool.must[0].query_string.query = req.swagger.params.q.value;
   }
-
-  // If wildcard queries
-  if (req.swagger.params.scientificName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.scientificName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'canonical.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.kingdomName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.kingdomName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.kingdom_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.phylumName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.phylumName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.phylum_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.className.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.className.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.class_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.orderName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.orderName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.order_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.familyName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.familyName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.family_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.genusName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.genusName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.genus_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.speciesName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.speciesName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.species_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.specificEpithetName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.specificEpithetName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.specific_epithet.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.infraspecificEpithetName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.infraspecificEpithetName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'taxonomy.infraspecific_epithet.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.providerName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.providerName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'provider.name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.resourceName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.resourceName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'resource.name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.collectionName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.collectionName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'collection.name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.institutionCode.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.institutionCode.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'institution.code.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.countryName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.countryName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'country_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.departmentName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.departmentName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'department_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.countyName.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.countyName.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'county_name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.habitat.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.habitat.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'habitat.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
-  if (req.swagger.params.basisOfRecord.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    req.swagger.params.basisOfRecord.value.forEach((value) => {
-      query.query.bool.must[countAndQueries].bool.should[counter] = {
-        wildcard: {
-          'basis_of_record.name.exactWords': `*${value.toLowerCase()}*`
-        }
-      };
-      counter += 1;
-    });
-    countAndQueries += 1;
-  }
+  // If wildcard queries and exact queries
+  addQueriesFromMap(req.swagger.params, query, queryMap);
   // Query related with elevation
-  if (req.swagger.params.elevationEqual.value || req.swagger.params.elevationGreaterOrEqualTo.value || req.swagger.params.elevationLessOrEqualTo.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    if (req.swagger.params.elevationEqual.value) {
-      req.swagger.params.elevationEqual.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              term: {
-                minimum_elevation: parseFloat(value)
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    if (req.swagger.params.elevationGreaterOrEqualTo.value) {
-      req.swagger.params.elevationGreaterOrEqualTo.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              range: {
-                minimum_elevation: {
-                  gte: parseFloat(value)
-                }
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    if (req.swagger.params.elevationLessOrEqualTo.value) {
-      req.swagger.params.elevationLessOrEqualTo.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              range: {
-                minimum_elevation: {
-                  lte: parseFloat(value)
-                }
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    countAndQueries += 1;
-  }
+  addElevationQuery(req.swagger.params, query);
   // Query related with depth
-  if (req.swagger.params.depthEqual.value || req.swagger.params.depthGreaterOrEqualTo.value || req.swagger.params.depthLessOrEqualTo.value) {
-    query.query.bool.must[countAndQueries] = {
-      bool: {
-        should: []
-      }
-    };
-    let counter = 0;
-    if (req.swagger.params.depthEqual.value) {
-      req.swagger.params.depthEqual.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              term: {
-                minimum_elevation: -parseFloat(value)
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    if (req.swagger.params.depthGreaterOrEqualTo.value) {
-      req.swagger.params.depthGreaterOrEqualTo.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              range: {
-                minimum_elevation: {
-                  lte: -parseFloat(value)
-                }
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    if (req.swagger.params.depthLessOrEqualTo.value) {
-      req.swagger.params.depthLessOrEqualTo.value.forEach((value) => {
-        query.query.bool.must[countAndQueries].bool.should[counter] = {
-          constant_score: {
-            filter: {
-              range: {
-                minimum_elevation: {
-                  gte: -parseFloat(value)
-                }
-              }
-            }
-          }
-        };
-        counter += 1;
-      });
-    }
-    countAndQueries += 1;
-  }
+  addDepthQuery(req.swagger.params, query);
 
   client.search({
     index: config.get('database.elasticSearch.index'),
@@ -1995,47 +639,7 @@ function gridSearchPbf(req, res) {
             let p = occurrenceGeoHashGrid.buckets[key].doc_count;
             p = Math.max(p, 2);
             p = Math.log10(p);
-            const colorGroup = Math.ceil((p * 12) / logValueHigher);
-            switch (colorGroup) {
-              case 1:
-                fillColor = '#FFE8A5';
-                break;
-              case 2:
-                fillColor = '#FDDC9E';
-                break;
-              case 3:
-                fillColor = '#FBD198';
-                break;
-              case 4:
-                fillColor = '#F9C592';
-                break;
-              case 5:
-                fillColor = '#F7BA8B';
-                break;
-              case 6:
-                fillColor = '#F5AF85';
-                break;
-              case 7:
-                fillColor = '#F3A37F';
-                break;
-              case 8:
-                fillColor = '#F19879';
-                break;
-              case 9:
-                fillColor = '#EF8D72';
-                break;
-              case 10:
-                fillColor = '#ED816C';
-                break;
-              case 11:
-                fillColor = '#EB7666';
-                break;
-              case 12:
-                fillColor = '#EA6B60';
-                break;
-              default:
-                break;
-            }
+            fillColor = colorPalette[Math.ceil((p * 12) / logValueHigher)];
           }
 
           features.push({
@@ -2044,26 +648,11 @@ function gridSearchPbf(req, res) {
               type: 'Polygon',
               coordinates: [
                 [
-                  [
-                    bounds.sw.lon,
-                    bounds.sw.lat
-                  ],
-                  [
-                    bounds.sw.lon,
-                    bounds.ne.lat
-                  ],
-                  [
-                    bounds.ne.lon,
-                    bounds.ne.lat
-                  ],
-                  [
-                    bounds.ne.lon,
-                    bounds.sw.lat
-                  ],
-                  [
-                    bounds.sw.lon,
-                    bounds.sw.lat
-                  ]
+                  [bounds.sw.lon, bounds.sw.lat],
+                  [bounds.sw.lon, bounds.ne.lat],
+                  [bounds.ne.lon, bounds.ne.lat],
+                  [bounds.ne.lon, bounds.sw.lat],
+                  [bounds.sw.lon, bounds.sw.lat]
                 ]
               ]
             },
