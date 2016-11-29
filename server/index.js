@@ -11,9 +11,6 @@ import { logger } from './log';
 import SwaggerExpress from 'swagger-express-mw';
 import swaggerUiMiddleware from 'swagger-ui-middleware';
 
-console.log(config.get('env'));
-console.log(config.get('logs'));
-
 const app = express();
 app.use(compression());
 const swaggerConfig = {
