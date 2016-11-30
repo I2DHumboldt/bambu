@@ -572,6 +572,30 @@ paths:
             type: number
             format: double
           required: false
+        - name: latitudeTopLeft
+          in: query
+          description: "Data located around square defined by top left point and bottom right point. Use latitudeTopLeft for the latitude of the top left point."
+          type: number
+          format: double
+          required: false
+        - name: longitudeTopLeft
+          in: query
+          description: "Data located around square defined by top left point and bottom right point. Use latitudeTopLeft for the longitude of the top left point."
+          type: number
+          format: double
+          required: false
+        - name: latitudeBottomRight
+          in: query
+          description: "Data located around square defined by top left point and bottom right point. Use latitudeBottomRight for the latitude of the bottom right point."
+          type: number
+          format: double
+          required: false
+        - name: longitudeBottomRight
+          in: query
+          description: "Data located around square defined by top left point and bottom right point. Use longitudeBottomRight for the longitude of the bottom right point."
+          type: number
+          format: double
+          required: false
         - name: precision
           in: query
           description: "Grid hash precision. Valid values. 1: 5,009.4km x 4,992.6km, 2: 1,252.3km x 624.1km, 3: 156.5km x 156km, 4: 39.1km x 19.5km, 5: 4.9km x 4.9km, 6: 1.2km x 609.4m"

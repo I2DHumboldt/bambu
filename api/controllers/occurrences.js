@@ -52,7 +52,7 @@ function addWildcardQuery(paramValue, field, query) {
         should: []
       }
     };
-    if(Array.isArray(group)){
+    if(Array.isArray(paramValue)){
       paramValue.forEach((value) => {
         let wildcardQuery = {};
         wildcardQuery[field] = `*${value.toLowerCase()}*`;
@@ -276,6 +276,10 @@ function occurrenceCount(req, res) {
 
   const onlyGeoreferenced = req.swagger.params.isGeoreferenced.value || false;
 
+  if(req.swagger.params['group']) {
+    req.swagger.params['group'] = {value:"guess"};
+  }
+
   if (!onlyGeoreferenced) {
     query.query.bool.should.push(isNotGeoreferenced);
   }
@@ -305,6 +309,10 @@ function occurrenceCount(req, res) {
   Param facet: type string, name of element used for aggregation
  */
 function search(req, res) {
+  if(req.swagger.params['group']) {
+    req.swagger.params['group'] = {value:"guess"};
+  }
+
   const from = ((req.swagger.params.page.value) ? req.swagger.params.page.value : 0)
     * ((req.swagger.params.size.value) ? req.swagger.params.size.value : 10);
   // Root query for ES
@@ -416,6 +424,9 @@ function search(req, res) {
   Returns a grid with occurrence densities according to params request
  */
 function gridSearch(req, res) {
+  if(req.swagger.params['group']) {
+    req.swagger.params['group'] = {value:"guess"};
+  }
   // Root query for ES
   const query = {
     size: 0,
@@ -550,6 +561,9 @@ function gridSearch(req, res) {
   vector tile format using protocol buffer
  */
 function gridSearchPbf(req, res) {
+  if(req.swagger.params['group']) {
+    req.swagger.params['group'] = {value:"guess"};
+  }
   // Root query for ES
   const query = {
     size: 0,
