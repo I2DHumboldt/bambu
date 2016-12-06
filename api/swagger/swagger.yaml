@@ -94,6 +94,216 @@ paths:
           required: false
           type: string
           default: guess
+        - name: q
+          in: query
+          description: Simple search parameter. The value for this parameter can be a simple word or a phrase. See http://lucene.apache.org/core/6_1_0/queryparser/org/apache/lucene/queryparser/classic/package-summary.html#package_description
+          required: false
+          type: string
+        - name: scientificName
+          in: query
+          description: Scientific name.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: kingdomName
+          in: query
+          description: Kingdom name.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: phylumName
+          in: query
+          description: Phylum name.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: className
+          in: query
+          description: Class name.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: orderName
+          in: query
+          description: Order name.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: familyName
+          in: query
+          description: Family name.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: genusName
+          in: query
+          description: Genus name.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: speciesName
+          in: query
+          description: Species name.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: specificEpithetName
+          in: query
+          description: Specific epithet name.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: infraspecificEpithetName
+          in: query
+          description: Infraspecific epithet name.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: providerName
+          in: query
+          description: Provider name.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: resourceName
+          in: query
+          description: Resource name.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: collectionName
+          in: query
+          description: Collection name.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: institutionCode
+          in: query
+          description: Institution code.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: countryName
+          in: query
+          description: Country name.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: departmentName
+          in: query
+          description: Department name.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: countyName
+          in: query
+          description: County name.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: habitat
+          in: query
+          description: Habitat.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: basisOfRecord
+          in: query
+          description: Basis of record.
+          required: false
+          type: array
+          items:
+            type: string
+        - name: elevationEqual
+          in: query
+          description: "Occurrence elevation. This query parameter searchs for elevation equal to a number."
+          required: false
+          type: array
+          items:
+            type: number
+            format: double
+        - name: elevationGreaterOrEqualTo
+          in: query
+          description: "Occurrence elevation. This query parameter searchs for elevation equal or greater than a number."
+          type: array
+          items:
+            type: number
+            format: double
+          required: false
+        - name: elevationLessOrEqualTo
+          in: query
+          description: "Occurrence elevation. This query parameter searchs for elevation equal or less than a number."
+          type: array
+          items:
+            type: number
+            format: double
+          required: false
+        - name: depthEqual
+          in: query
+          description: "Occurrence depth. This query parameter searchs for depth equal to a number."
+          type: array
+          items:
+            type: number
+            format: double
+          required: false
+        - name: depthGreaterOrEqualTo
+          in: query
+          description: "Occurrence depth. This query parameter searchs for depth equal or greater than a number."
+          type: array
+          items:
+            type: number
+            format: double
+          required: false
+        - name: depthLessOrEqualTo
+          in: query
+          description: "Occurrence depth. This query parameter searchs for depth equal or less than a number."
+          type: array
+          items:
+            type: number
+            format: double
+          required: false
+        - name: latitudeTopLeft
+          in: query
+          description: "Data located around square defined by top left point and bottom right point. Use latitudeTopLeft for the latitude of the top left point."
+          type: number
+          format: double
+          required: false
+        - name: longitudeTopLeft
+          in: query
+          description: "Data located around square defined by top left point and bottom right point. Use latitudeTopLeft for the longitude of the top left point."
+          type: number
+          format: double
+          required: false
+        - name: latitudeBottomRight
+          in: query
+          description: "Data located around square defined by top left point and bottom right point. Use latitudeBottomRight for the latitude of the bottom right point."
+          type: number
+          format: double
+          required: false
+        - name: longitudeBottomRight
+          in: query
+          description: "Data located around square defined by top left point and bottom right point. Use longitudeBottomRight for the longitude of the bottom right point."
+          type: number
+          format: double
+          required: false
       responses:
         "200":
           description: Success

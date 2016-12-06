@@ -77,7 +77,7 @@ function addGroupQuery(paramValue, query) {
   if(query.query.bool.must[0].query_string.query === '*')
     query.query.bool.must[0].query_string.query = field + '=' + paramValue.value;
   else
-    query.query.bool.must[0].query_string.query = ' AND ' + field + '=' + paramValue.value;
+    query.query.bool.must[0].query_string.query += ' AND ' + field + '=' + paramValue.value;
 }
 
 function addExactQuery(paramValue, field, query) {
@@ -248,6 +248,11 @@ const colorPalette = ['#FFFFFF', '#FFE8A5', '#FDDC9E', '#FBD198', '#F9C592', '#F
   Param 1: isGeoreferenced (boolean), if true returns the count of georeferenced occurrences
  */
 function occurrenceCount(req, res) {
+  var group = req.swagger.params['group'];
+  if(!group) {
+    group = {value: 'guess'};
+  }
+
   const isGeoreferenced = {
     bool: {
       must: {
@@ -284,21 +289,26 @@ function occurrenceCount(req, res) {
   };
 
   const onlyGeoreferenced = req.swagger.params.isGeoreferenced.value || false;
-  var group = req.swagger.params['group'];
-  if(!group) {
-    group = {value: 'guess'};
-  }
 
   if (!onlyGeoreferenced) {
     query.query.bool.should.push(isNotGeoreferenced);
   }
 
-  //Add group query part
-  //addExactQuery(req.swagger.params.group.value, 'resource.group', query);
-  //for(let key in queryMap.exactQuery) {
-  // addExactQuery(req.swagger.params[key].value, queryMap.exactQuery[key], query);
-  //}
+  // Check parameters for bounding box query
+  addGeoQuery(req.swagger.params, query);
+
+  // If query general condition
+  if (req.swagger.params.q.value) {
+    query.query.bool.must[0].query_string.query = req.swagger.params.q.value;
+  }
+
   addGroupQuery(group, query);
+  // If wildcard queries and exact queries
+  addQueriesFromMap(req.swagger.params, query, queryMap);
+  // Query related with elevation
+  addElevationQuery(req.swagger.params, query);
+  // Query related with depth
+  addDepthQuery(req.swagger.params, query);
 
   client.count({
     index: config.get('database.elasticSearch.index'),
