@@ -12,7 +12,7 @@ const client = new elasticsearch.Client({
 });
 
 const queryMap = {
-  groupQuery:{group:'resource.group'},
+  groupQuery: {group:'resource.group'},
   wildcardQuery:{
     scientificName: 'canonical',
     kingdomName: 'taxonomy.kingdom_name',
@@ -75,9 +75,9 @@ function addWildcardQuery(paramValue, field, query) {
 function addGroupQuery(paramValue, query) {
   var field = queryMap.groupQuery['group'];
   if(query.query.bool.must[0].query_string.query === '*')
-    query.query.bool.must[0].query_string.query = field + '=' + paramValue['group'].value;
+    query.query.bool.must[0].query_string.query = field + '=' + paramValue.value;
   else
-    query.query.bool.must[0].query_string.query = ' AND ' + field + '=' + paramValue['group'].value;
+    query.query.bool.must[0].query_string.query = ' AND ' + field + '=' + paramValue.value;
 }
 
 function addExactQuery(paramValue, field, query) {
@@ -284,9 +284,9 @@ function occurrenceCount(req, res) {
   };
 
   const onlyGeoreferenced = req.swagger.params.isGeoreferenced.value || false;
-
-  if(!req.swagger.params['group']) {
-    req.swagger.params['group'] = {value: 'guess'};
+  var group = req.swagger.params['group'];
+  if(!group) {
+    group = {value: 'guess'};
   }
 
   if (!onlyGeoreferenced) {
@@ -298,7 +298,7 @@ function occurrenceCount(req, res) {
   //for(let key in queryMap.exactQuery) {
   // addExactQuery(req.swagger.params[key].value, queryMap.exactQuery[key], query);
   //}
-  addGroupQuery(req.swagger.params, query);
+  addGroupQuery(group, query);
 
   client.count({
     index: config.get('database.elasticSearch.index'),
@@ -319,8 +319,9 @@ function occurrenceCount(req, res) {
   Param facet: type string, name of element used for aggregation
  */
 function search(req, res) {
-  if(!req.swagger.params['group']) {
-    req.swagger.params['group'] = {value:"guess"};
+  var group = req.swagger.params['group'];
+  if(!group) {
+    group = {value: 'guess'};
   }
 
   const from = ((req.swagger.params.page.value) ? req.swagger.params.page.value : 0)
@@ -351,7 +352,8 @@ function search(req, res) {
     query.query.bool.must[0].query_string.query = req.swagger.params.q.value;
   }
 
-  addGroupQuery(req.swagger.params, query);
+
+  addGroupQuery(group, query);
   // If wildcard queries and exact queries
   addQueriesFromMap(req.swagger.params, query, queryMap);
   // Query related with elevation
@@ -436,8 +438,9 @@ function search(req, res) {
   Returns a grid with occurrence densities according to params request
  */
 function gridSearch(req, res) {
-  if(!req.swagger.params['group']) {
-    req.swagger.params['group'] = {value:"guess"};
+  var group = req.swagger.params['group'];
+  if(!group) {
+    group = {value: 'guess'};
   }
   // Root query for ES
   const query = {
@@ -469,7 +472,7 @@ function gridSearch(req, res) {
     query.query.bool.must[0].query_string.query = req.swagger.params.q.value;
   }
 
-  addGroupQuery(req.swagger.params, query);
+  addGroupQuery(group, query);
   // Check parameters for bounding box query
   addGeoQuery(req.swagger.params, query);
   // If wildcard queries and exact queries
@@ -577,8 +580,9 @@ function gridSearch(req, res) {
   vector tile format using protocol buffer
  */
 function gridSearchPbf(req, res) {
-  if(!req.swagger.params['group']) {
-    req.swagger.params['group'] = {value:"guess"};
+  var group = req.swagger.params['group'];
+  if(!group) {
+    group = {value: 'guess'};
   }
   // Root query for ES
   const query = {
@@ -612,7 +616,7 @@ function gridSearchPbf(req, res) {
 
   addGroupQuery(req.swagger.params, query);
   // Check parameters for bounding box query
-  addGeoQuery(req.swagger.params, query);
+  addGeoQuery(group, query);
   // If wildcard queries and exact queries
   addQueriesFromMap(req.swagger.params, query, queryMap);
   // Query related with elevation
