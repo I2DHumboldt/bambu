@@ -614,9 +614,9 @@ function gridSearchPbf(req, res) {
     query.query.bool.must[0].query_string.query = req.swagger.params.q.value;
   }
 
-  addGroupQuery(req.swagger.params, query);
+  addGroupQuery(group, query);
   // Check parameters for bounding box query
-  addGeoQuery(group, query);
+  addGeoQuery(req.swagger.params, query);
   // If wildcard queries and exact queries
   addQueriesFromMap(req.swagger.params, query, queryMap);
   // Query related with elevation
