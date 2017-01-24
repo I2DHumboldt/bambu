@@ -127,3 +127,7 @@ Si hay datos en la base de datos de ElasticSearch se debe ver un mensaje como es
 {count: 341}
 ```
 
+## Lista de funciones y parámetros
+
+Se habilitó la herramienta de prueba del API para que se pueda acceder y consultar el archivo swagger.yaml de la API. Para esto vaya sobre el [sitio de documentación de la API](http://190.25.232.2:576/api-doc/)
+Y use esta URL (http://190.25.232.2:576/swagger.yaml) del archivo de definición de la API en el campo de texto de la página.
